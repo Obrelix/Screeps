@@ -1,4 +1,5 @@
 ﻿
+require('Traveler');
 module.exports = {
 
     farmer: function (creep) {
@@ -28,7 +29,7 @@ module.exports = {
                 creep.harvest(source);
             }
             else {
-                creep.moveTo(container);
+                creep.travelTo(container);
             }
         }
     },
@@ -183,25 +184,16 @@ module.exports = {
             console.log(creep.room.pos.findClosestByPath(FIND_EXIT_TOP));
             let exit = creep.room.pos.findClosestByPath(FIND_EXIT_TOP);
             if (exit != undefined) {
-                creep.moveTo(exit);
+                creep.travelTo(exit);
             }
         }
     },
     lightSoldier: function (creep) {
-        //creep.memory.target = 'W25N23';
         if (creep.goToTargetRoom()) return;
         if (creep.findCreepsAndAttack());
         else if (creep.findStructuresAndAttack());
         else {
-            //creep.moveTo(34,4);
-            //console.log(creep.room.pos.findClosestByPath(FIND_EXIT_TOP));
-            //let exit = creep.room.pos.findClosestByPath(FIND_EXIT_TOP);
 
-            //var exit = creep.room.findExitTo('W26N23');
-            ////console.log(exit);
-            //if (exit != undefined) {
-            //    
-            //}
         }
     },
     lorryLink: function (creep) {
@@ -209,5 +201,7 @@ module.exports = {
         if (creep.findCreepsAndAttack());
         else if (creep.findStructuresAndAttack());
     },
+    extractor: function (creep) {
 
+    }
 };

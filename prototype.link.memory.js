@@ -3,21 +3,21 @@
 module.exports = Object.defineProperty(StructureLink.prototype, 'memory', {
     configurable: true,
     get: function () {
-        if (_.isUndefined(Memory.myStructuresMemory)) {
-            Memory.myStructuresMemory = {};
+        if (_.isUndefined(Memory.links)) {
+            Memory.links = {};
         }
-        if (!_.isObject(Memory.myStructuresMemory)) {
+        if (!_.isObject(Memory.links)) {
             return undefined;
         }
-        return Memory.myStructuresMemory[this.id] = Memory.myStructuresMemory[this.id] || {};
+        return Memory.links[this.id] = Memory.links[this.id] || {};
     },
     set: function (value) {
-        if (_.isUndefined(Memory.myStructuresMemory)) {
-            Memory.myStructuresMemory = {};
+        if (_.isUndefined(Memory.links)) {
+            Memory.links = {};
         }
-        if (!_.isObject(Memory.myStructuresMemory)) {
+        if (!_.isObject(Memory.links)) {
             throw new Error('Could not set source memory');
         }
-        Memory.myStructuresMemory[this.id] = value;
+        Memory.links[this.id] = value;
     }
 });

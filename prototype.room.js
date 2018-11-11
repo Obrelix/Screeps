@@ -44,10 +44,11 @@ module.exports = function () {
         let targetRooms = [...new Set(creeps.map(item => item.target))];
         let hostilesNum = 0;
         for (let name of targetRooms) {
-            let alertFlag = Game.rooms[name] != undefined && Game.rooms[name].find(FIND_HOSTILE_CREEPS).length > 0;
+            let alertFlag = Game.rooms[name] != undefined && Game.rooms[name].memory.isUnsafe;
             let alertTicks = 0;
             if (alertFlag) {
-                alertTicks = Game.rooms[name].find(FIND_HOSTILE_CREEPS)[0].ticksToLive;
+                let hostile = Game.rooms[name].find(FIND_HOSTILE_CREEPS)[0];
+                if (hostile != undefined) alertTicks = hostile.ticksToLive;
                 for (let i = 0; i < creeps.length; i++) {
                     if (creeps[i].target == name && creeps[i].role != 'soldier' && creeps[i].role != 'lightSoldier' && creeps[i].role != 'bodyGuard') {
                         creeps[i].alertFlag = true;
@@ -83,7 +84,6 @@ module.exports = function () {
 
         let spawns = this.find(FIND_MY_STRUCTURES, { filter: s => s.structureType == STRUCTURE_SPAWN });
         let roomInfo = {
-            spawns: spawns,
             energyMax: this.energyCapacityAvailable,
             energyNow: this.energyAvailable,
             creeps: creeps,
@@ -92,7 +92,7 @@ module.exports = function () {
         };
 
         for(let spawn of spawns) {
-            spawn.printSpawnInfo();
+            //spawn.printSpawnInfo();
             for (let i = 0; i < creeps.length; i++) {
                 var creep = creeps[i];
                 if (creep.count < creep.minValue){
@@ -102,7 +102,22 @@ module.exports = function () {
             }
         }
         this.printRoomInfo(roomInfo);
-        if(Game.time%5 == 0)this.logRoomState(creeps);
+        if(Game.time%10 == 0)this.logRoomState(creeps);
+    };
+    
+    Room.prototype.isUnsafe = function () {
+        try {
+            //if(this.name =='W26N22')console.log(this.name + ' ' + this.find(FIND_HOSTILE_CREEPS).length);
+            if (this.find(FIND_HOSTILE_CREEPS).length > 0) return true;
+            else return false;
+            //&& this.find(FIND_MY_CREEPS, {
+            //    filter: c=> (c.memory.role == 'bodyGuard'
+            //                || c.memory.role == 'soldier'
+            //                || c.memory.role == 'lightSoldier')
+            //}).length == 0;
+        } catch (e) {
+            console.log(this + ' ' + e);
+        }
     };
 
     Room.prototype.printRoomInfo = function (roomInfo) {

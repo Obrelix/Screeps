@@ -1,4 +1,6 @@
 ﻿
+require('prototype.room')();
+require('Traveler');
 var creepRoles = require('creep.roles');
 //require('prototype.creep.role');
 module.exports = function () {
@@ -19,40 +21,71 @@ module.exports = function () {
     };
 
     Creep.prototype.goToTargetRoom = function () {
-        if (this.room.name != this.memory.target) {
-            var exit = this.room.findExitTo(this.memory.target);
-            this.moveTo(this.pos.findClosestByPath(exit));
-            this.memory.job = 'goToTargetRoom';
-            return true;
+        //const startCpu = Game.cpu.getUsed();
+        try {
+            let targetRoom = Game.rooms[this.memory.target];
+            if (this.room.name != this.memory.target) {
+                if (targetRoom != undefined
+                    && targetRoom.memory.isUnsafe
+                    && this.memory.attack == false) return;
+                var exit = this.room.findExitTo(this.memory.target);
+                this.travelTo(this.pos.findClosestByPath(exit));
+                this.memory.job = 'goToTargetRoom';
+                return true;
+            }
+        } catch (e) {
+            console.log(this.memory.name + ' goToTargetRoom ' + e);
+        } finally {
+            //const elapsed = Game.cpu.getUsed() - startCpu;
+            //console.log(this.name + ' goToTargetRoom has used ' + elapsed + ' CPU time');
         }
     };
 
     Creep.prototype.goToHomeRoom = function () {
         if (this.room.name != this.memory.home) {
             var exit = this.room.findExitTo(this.memory.home);
-            this.moveTo(this.pos.findClosestByRange(exit));
+            this.travelTo(this.pos.findClosestByPath(exit));
             this.memory.job = 'goToHomeRoom';
             return true;
         }
+        else return false;
     };
 
     Creep.prototype.ifNotSafeGoHome = function () {
-        if (this.room.name != this.memory.home && this.room.find(FIND_HOSTILE_CREEPS).length > 0
-            && this.room.find(FIND_MY_CREEPS, { filter: c=> (c.memory.role == 'bodyGuard' || c.memory.role == 'soldier' || c.memory.role == 'lightSoldier') }).length == 0) {
-            var exit = this.room.findExitTo(this.memory.home);
-            this.moveTo(this.pos.findClosestByRange(exit));
-            this.memory.job = 'NotSafeGoHome';
-            return true;
+
+        //const startCpu = Game.cpu.getUsed();
+
+        try {
+            let targetRoom = Game.rooms[this.memory.target];
+
+            if (targetRoom != undefined && targetRoom.memory.isUnsafe) {
+
+                //console.log(this.name + ' NotSafeGoHome ');
+                if (this.goToHomeRoom());
+                else this.travelTo(this.pos.findClosestByPath(this.room.controller));
+                this.memory.job = 'NotSafeGoHome';
+
+                return true;
+            }
+            else return false;
+        } catch (e) {
+            console.log(this.memory.name + ' NotSafeGoHome ' + e);
+        } finally {
+            //const elapsed = Game.cpu.getUsed() - startCpu;
+            //console.log(this.name + ' ifNotSafeGoHome has used ' + elapsed + ' CPU time');
         }
+
     };
 
     Creep.prototype.findEnergy = function () {
+        //const startCpu = Game.cpu.getUsed();
+        try {
 
         let container = undefined;
         const target = this.pos.findClosestByRange(FIND_DROPPED_RESOURCES);
         if (target != undefined && this.memory.role != 'lorry') {
             if (this.pickup(target) == ERR_NOT_IN_RANGE) {
-                this.moveTo(target);
+                this.travelTo(target);
                 return;
             }
         }
@@ -60,7 +93,7 @@ module.exports = function () {
             filter: (s) => s.energy > 0
         });
 
-        if (this.memory.role == 'lorry' || this.memory.role == 'LDLorry') {
+        if (this.memory.role == 'lorry') {
             container = this.pos.findClosestByPath(FIND_STRUCTURES,
                                                     {
                                                         filter: s => (s.structureType == STRUCTURE_CONTAINER 
@@ -74,6 +107,9 @@ module.exports = function () {
                                                     });
             }
         }
+        if (this.memory.role == 'lorry') {
+
+        }
         else {
             container = this.pos.findClosestByPath(FIND_STRUCTURES,
                                                     {
@@ -86,16 +122,31 @@ module.exports = function () {
         if (container != undefined) {
             //if(this.memory.role == 'builder') console.log(this.withdraw(container, RESOURCE_ENERGY));
             if (this.withdraw(container, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                this.moveTo(container);
+                if (_.sum(this.carry) > this.carryCapacity * 0.75) {
+                    this.memory.working = true;
+                    return;
+                }
+                this.travelTo(container);
             }
         }
         else if (this.memory.role != 'lorry' && this.memory.role != 'LDLorry') {
             if (this.harvest(source) == ERR_NOT_IN_RANGE) {
-                this.moveTo(source);
+                if (_.sum(this.carry) > this.carryCapacity * 0.75) {
+                    this.memory.working = true;
+                    return;
+                }
+                this.travelTo(source);
             }
         }
 
         this.memory.job = 'findEnergy';
+    } catch (e) {
+        console.log(this.memory.name + ' findEnergy ' + e);
+    } finally {
+        //const elapsed = Game.cpu.getUsed() - startCpu;
+        //console.log(this.name + ' findEnergy has used ' + elapsed + ' CPU time');
+    }
+
     };
 
     Creep.prototype.upgrade = function () {
@@ -108,11 +159,11 @@ module.exports = function () {
         let targetPos = this.room.controller.pos;
         if (this.upgradeController(this.room.controller) == OK && blockedCreep != undefined) {
             //moveTo(this, targetPos);
-            this.moveTo(this.room.controller);
+            this.travelTo(this.room.controller);
         }
         else if (this.upgradeController(this.room.controller) == ERR_NOT_IN_RANGE) {
             //moveTo(this, targetPos);
-            this.moveTo(this.room.controller);
+            this.travelTo(this.room.controller);
         }
 
         this.memory.job = 'upgrade';
@@ -122,7 +173,7 @@ module.exports = function () {
         let constructionSite = this.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
         if (constructionSite != undefined) {
             if (this.build(constructionSite) == ERR_NOT_IN_RANGE) {
-                this.moveTo(constructionSite);
+                this.travelTo(constructionSite);
             }
             this.memory.job = 'build';
             return true;
@@ -135,7 +186,7 @@ module.exports = function () {
         let hostile = this.pos.findClosestByPath(FIND_HOSTILE_CREEPS);
         if (hostile != undefined) {
             if (this.attack(hostile) == ERR_NOT_IN_RANGE) {
-                this.moveTo(hostile);
+                this.travelTo(hostile);
 
             }
             this.memory.job = 'attacking: ' + hostile;
@@ -152,7 +203,7 @@ module.exports = function () {
         if (hostile == undefined) hostile = this.pos.findClosestByPath(FIND_STRUCTURES, { filter: s => s.structureType == STRUCTURE_WALL && s.hits < 10000 });
         if (hostile != undefined) {
             if (this.attack(hostile) == ERR_NOT_IN_RANGE) {
-                this.moveTo(hostile);
+                this.travelTo(hostile);
 
             }
             this.memory.job = 'attacking: ' + hostile;
@@ -163,14 +214,14 @@ module.exports = function () {
     };
 
     Creep.prototype.findAndRepair = function () {
-        let structure = this.pos.findClosestByPath(FIND_STRUCTURES,
+        let structure = this.pos.findClosestByRange(FIND_STRUCTURES,
                                                     {
                                                         filter: (s) => s.hits < 100000
                                                                        && s.hits < s.hitsMax
                                                     });
         if (structure != undefined) {
             if (this.repair(structure) == ERR_NOT_IN_RANGE) {
-                this.moveTo(structure);
+                this.travelTo(structure);
             }
             this.memory.job = 'repair';
             return true;
@@ -202,7 +253,7 @@ module.exports = function () {
 
         if (target != undefined) {
             if (this.repair(target) == ERR_NOT_IN_RANGE) {
-                this.moveTo(target);
+                this.travelTo(target);
             }
             this.memory.job = 'repairWalls';
             return true;
@@ -211,22 +262,42 @@ module.exports = function () {
     };
 
     Creep.prototype.transferEnergy = function () {
-        let structure = this.pos.findClosestByPath(FIND_MY_STRUCTURES,{
-        filter: (s) => ((s.structureType == STRUCTURE_SPAWN
-                            || s.structureType == STRUCTURE_EXTENSION
-                            || (s.structureType == STRUCTURE_LINK && s.memory.from && this.memory.role != 'lorry'))
-                            && s.energy < s.energyCapacity )});
-        if (structure == undefined) {
+        let structure ;
+        if (this.memory.role == 'lorry') {
+            structure = this.pos.findClosestByPath(FIND_MY_STRUCTURES, {
+                filter: (s) => ((s.structureType == STRUCTURE_SPAWN
+                                    || s.structureType == STRUCTURE_EXTENSION)
+                                    && s.energy < s.energyCapacity)
+                                    || (s.structureType == STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.7)
+            });
+        }
+        else {
+            structure = this.pos.findClosestByPath(FIND_MY_STRUCTURES, {
+                filter: (s) => ((s.structureType == STRUCTURE_SPAWN
+                                    || s.structureType == STRUCTURE_EXTENSION)
+                                    && s.energy < s.energyCapacity)
+                                    || (s.structureType == STRUCTURE_LINK && s.memory.from && s.energy < s.energyCapacity)
+                                    || (s.structureType == STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.7)
+                                    || (s.structureType == STRUCTURE_STORAGE && _.sum(s.store) < 1000000)
+
+            });
+        }
+        if (structure == undefined) {       
             structure = this.pos.findClosestByPath(FIND_MY_STRUCTURES, {
                 filter: (s) => (s.structureType == STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.7)});
         }
+
         if (structure == undefined) {
-            structure = this.pos.findClosestByPath(FIND_STRUCTURES,{filter: (s) => (s.structureType == STRUCTURE_STORAGE)});
+            structure = this.pos.findClosestByPath(FIND_STRUCTURES, { filter: (s) => (s.structureType == STRUCTURE_LAB && s.energy < s.energyCapacity) });
        
+        }
+        if (structure == undefined) {
+            structure = this.pos.findClosestByPath(FIND_STRUCTURES, { filter: (s) => (s.structureType == STRUCTURE_STORAGE) });
+
         }
         if (structure != undefined) {
             if (this.transfer(structure, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                this.moveTo(structure);
+                this.travelTo(structure);
             }
         }
         this.memory.job = 'transferEnergy';
@@ -268,14 +339,14 @@ module.exports = function () {
 
         if (freeCreep == undefined && structure != undefined || creepDistance > structureDistance) {
             if (this.transfer(structure, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                this.moveTo(structure);
+                this.travelTo(structure);
             }
         }
         else if (freeCreep != undefined) {
 
             if (this.transfer(freeCreep, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                this.moveTo(freeCreep);
-                freeCreep.moveTo(this);
+                this.travelTo(freeCreep);
+                freeCreep.travelTo(this);
                 //console.log(this + "  👉 " + freeCreep);
             }
             else {
@@ -286,7 +357,7 @@ module.exports = function () {
         else {
 
             if (this.upgradeController(this.room.controller) == ERR_NOT_IN_RANGE) {
-                this.moveTo(this.room.controller);
+                this.travelTo(this.room.controller);
             }
         }
         this.memory.job = 'transferEnergyToNearestAvailable';
@@ -322,10 +393,10 @@ module.exports = function () {
         }
 
         if (freeCreep == undefined && structure != undefined || creepDistance > structureDistance 
-            && this.transfer(structure, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) this.moveTo(structure);
+            && this.transfer(structure, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) this.travelTo(structure);
         else if (freeCreep != undefined && (this.transfer(freeCreep, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE)) {
-            this.moveTo(freeCreep);
-            freeCreep.moveTo(this);
+            this.travelTo(freeCreep);
+            freeCreep.travelTo(this);
         }
         this.memory.job = 'transferEnergyAndAbort';
     };
@@ -346,15 +417,16 @@ module.exports = function () {
         var controller = this.room.controller;
         if (this.attackController(controller) == ERR_NOT_IN_RANGE) {
 
-            this.moveTo(controller);
+            this.travelTo(controller);
         }
         this.memory.job = 'attackHostileController';
     };
 
     Creep.prototype.claim = function () {
         var controller = this.room.controller;
+        console.log(this.claimController(controller));
         if (this.claimController(controller) == ERR_NOT_IN_RANGE) {
-            this.moveTo(controller);
+            this.travelTo(controller);
         }
         this.memory.job = 'claim';
     };
@@ -363,7 +435,7 @@ module.exports = function () {
         this.memory.job = 'reserve';
         var controller = this.room.controller;
         if (this.reserveController(controller) == ERR_NOT_IN_RANGE) {
-            this.moveTo(controller);
+            this.travelTo(controller);
         }
     };
 

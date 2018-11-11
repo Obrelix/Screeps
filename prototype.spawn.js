@@ -11,10 +11,9 @@ module.exports = function () {
             return this.spawnCreep(body, cr.role + '_' + cr.target + '_' + Game.time, {
                 memory: {
                     role: cr.role,
-                    currentRole: cr.role,
                     target: cr.target,
                     home: cr.home,
-                    sourceId: cr.sourceId,
+                    attack: false,
                     working: false
                 }
             });
@@ -35,10 +34,9 @@ module.exports = function () {
             return this.spawnCreep(body, cr.role + '_' + cr.target + '_' + Game.time, {
                 memory: {
                     role: cr.role,
-                    currentRole: cr.role,
                     home: cr.home,
                     target: cr.target,
-                    sourceId: cr.sourceId,
+                    attack: false,
                     working: false
                 }
             });
@@ -54,7 +52,7 @@ module.exports = function () {
                         home: cr.home,
                         role: cr.role,
                         target: cr.target,
-                        sourceId: cr.sourceId
+                        attack: false
                     }
                 });
         };
@@ -69,7 +67,7 @@ module.exports = function () {
                         home: cr.home,
                         role: cr.role,
                         target: cr.target,
-                        sourceId: cr.sourceId
+                        attack: false
                     }
                 });
         };
@@ -84,7 +82,7 @@ module.exports = function () {
                         home: cr.home,
                         role: cr.role,
                         target: cr.target,
-                        sourceId: cr.sourceId
+                        attack: true
                     }
                 });
         };
@@ -100,6 +98,7 @@ module.exports = function () {
                         home: cr.home,
                         role: cr.role,
                         target: cr.target,
+                        attack: false,
                         sourceId: cr.sourceId
                     }
                 });
@@ -114,9 +113,9 @@ module.exports = function () {
             return this.spawnCreep(body, cr.role + '_' + cr.target + '_' + Game.time, {
                 memory: {
                     role: cr.role,
-                    currentRole: cr.role,
                     target: cr.target,
                     home: cr.home,
+                    attack: false,
                     working: false
                 }
             });
@@ -136,10 +135,9 @@ module.exports = function () {
             return this.spawnCreep(body, cr.role + '_' + cr.target + '_' + Game.time, {
                 memory: {
                     role: cr.role,
-                    currentRole: cr.role,
                     home: cr.home,
                     target: cr.target,
-                    sourceId: cr.sourceId,
+                    attack: false,
                     working: false
                 }
             });
@@ -155,10 +153,9 @@ module.exports = function () {
             return this.spawnCreep(body, cr.role + '_' + cr.target + '_' + Game.time, {
                 memory: {
                     role: cr.role,
-                    currentRole: cr.role,
                     target: cr.target,
                     home: cr.home,
-                    working: false
+                    attack: true,
                 }
             });
         };
@@ -171,10 +168,9 @@ module.exports = function () {
             return this.spawnCreep(body, cr.role + '_' + cr.target + '_' + Game.time, {
                 memory: {
                     role: cr.role,
-                    currentRole: cr.role,
                     target: cr.target,
                     home: cr.home,
-                    working: false
+                    attack: true,
                 }
             });
         };
