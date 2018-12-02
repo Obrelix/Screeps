@@ -13,6 +13,7 @@ module.exports = function () {
                     role: cr.role,
                     target: cr.target,
                     home: cr.home,
+                    sourceId: cr.sourceId,
                     attack: false,
                     working: false
                 }
@@ -183,6 +184,8 @@ module.exports = function () {
                      case 'LDFarmer': this.spawnLDFarmer(creep.maxEnergyCost, creep, 0); break;
                      case 'claimer': this.spawnClaimer(creep); break;
                      case 'LDLorry': this.spawnLorry(creep.maxEnergyCost, creep); break;
+                     case 'llorry':
+                     case 'labLorry':
                      case 'lorry': this.spawnLorry(creep.maxEnergyCost, creep); break;
                      case 'reserver': this.spawnReserver(creep); break;
                      case 'miner': this.spawnMiner(creep.maxEnergyCost, creep); break;

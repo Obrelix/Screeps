@@ -61,7 +61,8 @@ module.exports = function () {
         let attackedRooms = [...new Set(creeps.filter(c => c.alertFlag == true).map(c => c.target))];
         for (let name of attackedRooms) {
             for (let i = 0; i < creeps.length; i++) {
-                if (creeps[i].target == name) {
+                let targetRoom = Game.rooms[name];
+                if (creeps[i].target == name &&( targetRoom.controller == undefined || targetRoom.controller.level < 2)) {
                     creeps.splice(0, 0, {
                         role: 'bodyGuard',
                         home: creeps[i].home,
@@ -105,18 +106,55 @@ module.exports = function () {
         if(Game.time%10 == 0)this.logRoomState(creeps);
     };
     
+    Room.prototype.initializeMemory = function () {
+        try {
+            this.memory.isUnsafe = this.isUnsafe();
+            let structures = this.find(FIND_STRUCTURES);
+            let priorStructures = this.find(FIND_MY_STRUCTURES, {
+                filter: s=> ((s.structureType == STRUCTURE_EXTENSION
+                            || s.structureType == STRUCTURE_SPAWN)
+                            && s.energy < s.energyCapacity)
+                            || (s.structureType == STRUCTURE_TOWER && s.energy < s.energyCapacity * 0.75)
+            });
+            for(let structure of structures) {
+
+                switch (structure.structureType) {
+                    case STRUCTURE_EXTENSION:
+                    case STRUCTURE_SPAWN:
+                        if (structure.energy < structure.energyCapacity) structure.memory.needsEnergy = true;
+                        else structure.memory.needsEnergy = false;
+                        break;
+                        break;
+                    case STRUCTURE_TOWER:
+                        if (structure.energy < structure.energyCapacity * 0.75) structure.memory.needsEnergy = true;
+                        else structure.memory.needsEnergy = false;
+                        break;
+                    case STRUCTURE_LINK:
+                        if (structure.energy < structure.energyCapacity
+                            && structure.memory.from) structure.memory.needsEnergy = true;
+                        else structure.memory.needsEnergy = false;
+                        break;
+                    case STRUCTURE_STORAGE:
+                        if (priorStructures.length > 0 || _.sum(structure.store) < structure.storeCapacity) structure.memory.needsEnergy = true;
+                        else structure.memory.needsEnergy = false;
+                        break;
+                    case STRUCTURE_LAB:
+                        break;
+                    default: structure.memory.needsEnergy = false;
+                        break;
+                }
+            }
+        } catch (e) {
+            console.log(this + ' initializeMemory ' + e);
+        }
+    };
+    
     Room.prototype.isUnsafe = function () {
         try {
-            //if(this.name =='W26N22')console.log(this.name + ' ' + this.find(FIND_HOSTILE_CREEPS).length);
             if (this.find(FIND_HOSTILE_CREEPS).length > 0) return true;
             else return false;
-            //&& this.find(FIND_MY_CREEPS, {
-            //    filter: c=> (c.memory.role == 'bodyGuard'
-            //                || c.memory.role == 'soldier'
-            //                || c.memory.role == 'lightSoldier')
-            //}).length == 0;
         } catch (e) {
-            console.log(this + ' ' + e);
+            console.log(this + ' isUnsafe ' + e);
         }
     };
 
@@ -149,7 +187,7 @@ module.exports = function () {
         for (let container of containers) {
             let obj = Game.getObjectById(container.id);
             this.visual.text(
-                obj.store[RESOURCE_ENERGY],
+                _.sum(obj.store),
                 obj.pos.x,
                 obj.pos.y + 1,
                 { align: 'left', opacity: 0.6 });

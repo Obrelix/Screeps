@@ -18,7 +18,7 @@ module.exports = {
             creep.findEnergy();
         }
     },
-
+    
     miner: function (creep) {
         if (creep.ifNotSafeGoHome()) return;
         else if (creep.goToTargetRoom()) return;
@@ -34,6 +34,7 @@ module.exports = {
         }
     },
 
+
     lorry: function (creep) {
         if (creep.ticksToLive < 20) {
             creep.transferEnergyAndAbort();
@@ -42,9 +43,72 @@ module.exports = {
         if (creep.ifNotSafeGoHome()) return;
         else if (creep.goToTargetRoom()) return;
         creep.setWorkingState();
-        if (creep.memory.working == true) creep.transferEnergy();
-        else creep.findEnergy();
+        if (creep.memory.working == true)
+            creep.transferEnergy();
+        else
+            creep.findEnergy();
 
+    },
+
+    /**
+    @param {Creep} creep 
+    */
+    llorry: function (creep) {
+        if (creep.ticksToLive < 20) {
+            creep.transferEnergyAndAbort();
+            return;
+        }
+        if (creep.ifNotSafeGoHome()) return;
+        else if (creep.goToTargetRoom()) return;
+        creep.setWorkingState();
+        if (creep.memory.working == true)
+            creep.transferResources();
+        else
+            creep.findResources();
+
+    },
+
+    /**
+    @param {Creep} creep 
+    */
+    labLorry: function (creep) {
+        if (creep.ticksToLive < 20) {
+            creep.transferEnergyAndAbort();
+            return;
+        }
+        creep.setWorkingState();
+        //find if any reactor contains minerals
+        let lab = creep.room.find(FIND_MY_STRUCTURES, {
+            filter: s => s.structureType == STRUCTURE_LAB
+                && s.memory.reactor && !s.memory.working && s.mineralAmount > 0
+        })[0];
+
+        if (lab != undefined) {
+            if (creep.memory.working == true) creep.transferResources();
+            else creep.emptyLab(lab);
+        }
+        else {
+            //fill the empty labs with minerals
+            lab = creep.room.find(FIND_MY_STRUCTURES, {
+                filter: s => s.structureType == STRUCTURE_LAB
+                    && s.memory.resource != undefined && !s.memory.working
+                    && s.mineralAmount < s.mineralCapacity && s.room.terminal.store[s.memory.resource]> 0
+            })[0];
+            if (lab != undefined) {
+                let resourceType = lab.memory.resource;
+                if (creep.memory.working == true) creep.fillLab(lab, resourceType);
+                else creep.findResource(resourceType);
+            }
+        }
+
+    },
+
+    extractor: function (creep) {
+        if (creep.goToTargetRoom()) return;
+        creep.setWorkingState();
+        let source = Game.getObjectById(creep.memory.sourceId);
+        if (creep.memory.working == true)creep.transferResources();
+        else creep.harvestFromSource(source);
     },
 
     upgrader: function (creep) {
@@ -103,6 +167,23 @@ module.exports = {
         if (creep.memory.working) {
             if (!creep.repairWalls()) creep.findAndBuild();
                 
+        }
+        else {
+            creep.findEnergy(creep);
+        }
+    },
+
+    rampartRepairer: function (creep) {
+        if (creep.ticksToLive < 50) {
+            creep.transferEnergyAndAbort();
+            return;
+        }
+        if (creep.ifNotSafeGoHome()) return;
+        else if (creep.goToTargetRoom()) return;
+        creep.setWorkingState();
+        if (creep.memory.working) {
+            if (!creep.repairRamarts()) creep.findAndBuild();
+
         }
         else {
             creep.findEnergy(creep);
@@ -173,7 +254,7 @@ module.exports = {
         //creep.memory.target = 'W23N21';
         if (creep.goToTargetRoom()) return;
         if (creep.findCreepsAndAttack());
-        else if (creep.findStructuresAndAttack());
+        //else if (creep.findStructuresAndAttack());
     },
 
     soldier: function (creep) {
@@ -181,7 +262,6 @@ module.exports = {
         if (creep.findStructuresAndAttack());
         else if (creep.findCreepsAndAttack());
         else {
-            console.log(creep.room.pos.findClosestByPath(FIND_EXIT_TOP));
             let exit = creep.room.pos.findClosestByPath(FIND_EXIT_TOP);
             if (exit != undefined) {
                 creep.travelTo(exit);
@@ -201,7 +281,4 @@ module.exports = {
         if (creep.findCreepsAndAttack());
         else if (creep.findStructuresAndAttack());
     },
-    extractor: function (creep) {
-
-    }
 };

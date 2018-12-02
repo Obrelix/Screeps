@@ -11,10 +11,13 @@ module.exports = function () {
     };
     
     StructureTower.prototype.repairStructures = function () {
+        let maxHitPoints = this.room.memory.maxWallHitPoints;
         let structure = this.pos.findClosestByRange(FIND_STRUCTURES,
                                                     {
-                                                        filter: (s) => s.hits < 100000
+                                                        filter: (s) => s.hits <= maxHitPoints
                                                                        && s.hits < s.hitsMax
+                                                                       && s.structureType != STRUCTURE_WALL
+                                                                       //&& s.structureType != STRUCTURE_RAMPART
                                                     });
         if (structure != undefined) this.repair(structure) 
         return (structure != undefined);
